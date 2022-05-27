@@ -1,0 +1,32 @@
+# Node Image for docker on which code will execute
+image: node:12
+
+# This is the stages / task to perfom in jobs
+stages:
+  - build
+  - upload
+  
+# caching for reuse 
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+  - node_modules/
+  - build/
+
+# Job One for making build
+build_master:
+  stage: build
+  script:
+  - npm install
+  - CI=false PUBLIC_URL=https://$PUBLIC_URL npm run build 
+  only: ['master']
+
+# Job Two for deploy build to server
+upload_master:
+  stage: upload
+  image: google/cloud-sdk:latest
+  before_script:
+    - gcloud auth activate-service-account --key-file $GCP_SV_AC
+  script:
+    - gsutil -m rsync -r build/ gs://$PUBLIC_URL
+  only: ['master']
